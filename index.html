@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞机大战 - 哈雷酱专属版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 600px;
+            height: 800px;
+            box-shadow: 0 0 50px rgba(100, 200, 255, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%);
+        }
+
+        .menu-screen, .game-over-screen, .level-complete-screen, .boss-warning {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(100, 200, 255, 0.8);
+            margin-bottom: 30px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(100, 200, 255, 0.8); }
+            to { text-shadow: 0 0 40px rgba(100, 200, 255, 1), 0 0 60px rgba(100, 200, 255, 0.5); }
+        }
+
+        .btn {
+            padding: 15px 50px;
+            margin: 10px;
+            font-size: 20px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+        }
+
+        .stats {
+            color: #fff;
+            font-size: 18px;
+            margin: 15px 0;
+        }
+
+        .stats span {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+            color: white;
+            font-size: 16px;
+        }
+
+        #hud .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #healthBar, #bossHealthBar {
+            width: 150px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #healthFill, #bossHealthFill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d);
+            transition: width 0.3s ease;
+        }
+
+        #bossHealthBar {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            background: rgba(255, 0, 0, 0.3);
+        }
+
+        #bossHealthFill {
+            background: linear-gradient(90deg, #ff4757, #ff6348);
+        }
+
+        #bossHealthBar.hidden {
+            display: none;
+        }
+
+        .level-info {
+            font-size: 24px;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            margin-bottom: 20px;
+        }
+
+        .boss-warning {
+            background: rgba(255, 0, 0, 0.9);
+            animation: warning-pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes warning-pulse {
+            from { background: rgba(255, 0, 0, 0.7); }
+            to { background: rgba(255, 0, 0, 0.9); }
+        }
+
+        .boss-warning h1 {
+            color: #fff;
+            font-size: 60px;
+            animation: shake 0.1s ease-in-out infinite alternate;
+        }
+
+        @keyframes shake {
+            from { transform: translateX(-5px); }
+            to { transform: translateX(5px); }
+        }
+
+        .controls {
+            color: #aaa;
+            font-size: 14px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .controls p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="600" height="800"></canvas>
+
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="hud-item">
+                <span>❤️</span>
+                <div id="healthBar"><div id="healthFill" style="width: 100%"></div></div>
+            </div>
+            <div class="hud-item">
+                <span>🎯</span>
+                <span id="scoreDisplay">0</span>
+            </div>
+            <div class="hud-item">
+                <span>🔫</span>
+                <span id="weaponLevel">Lv.1</span>
+            </div>
+            <div class="hud-item">
+                <span>⚔️</span>
+                <span id="levelDisplay">1</span>
+            </div>
+        </div>
+
+        <!-- Boss 血条 -->
+        <div id="bossHealthBar" class="hidden">
+            <div id="bossHealthFill" style="width: 100%"></div>
+        </div>
+
+        <!-- 主菜单 -->
+        <div id="menuScreen" class="menu-screen">
+            <h1>✈️ 飞机大战 ✈️</h1>
+            <p class="stats">🏆 最高分: <span id="highScoreDisplay">0</span></p>
+            <button class="btn" onclick="game.start()">开始游戏</button>
+            <button class="btn" onclick="game.continueGame()">继续游戏</button>
+            <div class="controls">
+                <p>🖱️ 鼠标控制移动</p>
+                <p>⚡ 自动射击</p>
+            </div>
+        </div>
+
+        <!-- 游戏结束 -->
+        <div id="gameOverScreen" class="game-over-screen hidden">
+            <h1>💥 游戏结束 💥</h1>
+            <p class="stats">最终得分: <span id="finalScore">0</span></p>
+            <p class="stats">到达关卡: <span id="finalLevel">1</span></p>
+            <button class="btn" onclick="game.restart()">重新开始</button>
+            <button class="btn" onclick="game.showMenu()">返回菜单</button>
+        </div>
+
+        <!-- 关卡完成 -->
+        <div id="levelCompleteScreen" class="level-complete-screen hidden">
+            <div class="level-info">🎉 关卡 <span id="completedLevel">1</span> 完成！🎉</div>
+            <div id="starRating" style="font-size: 60px; color: #ffd700; margin: 20px 0; text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);">★★☆</div>
+            <p id="ratingComment" class="stats" style="font-size: 22px; color: #fff; margin-bottom: 25px;">表现不错！</p>
+            <p class="stats">得分: <span id="levelScore">0</span></p>
+            <p class="stats">生命值: <span id="healthRating">100%</span></p>
+            <p class="stats">通关时间: <span id="timeRating">120秒</span></p>
+            <p class="stats">击杀数: <span id="killRating">20</span></p>
+            <p class="stats">最大连击: <span id="comboRating">10</span></p>
+            <p class="stats">武器已升级!</p>
+            <button class="btn" onclick="game.nextLevel()">下一关</button>
+        </div>
+
+        <!-- Boss 警告 -->
+        <div id="bossWarning" class="boss-warning hidden">
+            <h1>⚠️ BOSS 来袭 ⚠️</h1>
+            <p style="color: white; font-size: 24px; margin-top: 20px;">准备战斗！</p>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

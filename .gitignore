@@ -1,0 +1,16 @@
+# Playwright 测试文件
+.playwright-mcp/
+.spec-workflow/
+
+# 截图文件
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# 调试文件
+debug.html
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
